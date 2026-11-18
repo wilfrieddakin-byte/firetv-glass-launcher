@@ -23,7 +23,9 @@ public class HomeButtonService extends AccessibilityService {
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
         if (event.getKeyCode() != KeyEvent.KEYCODE_HOME) return false;
-        if (event.getAction() == KeyEvent.ACTION_UP && !event.isCanceled()) openGlass();
+        // Fire OS may cancel or omit HOME's ACTION_UP while switching to its own
+        // launcher. Launch on the initial down event instead; consume both halves.
+        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) openGlass();
         return true; // swallow both down and up so Fire OS never sees Home
     }
 
@@ -40,7 +42,9 @@ public class HomeButtonService extends AccessibilityService {
         if (now - lastLaunch < 600) return; // one launch per Home press / launcher flash
         lastLaunch = now;
         startActivity(new Intent(this, HomeActivity.class)
-                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_REORDER_TO_FRONT));
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
+                        | Intent.FLAG_ACTIVITY_CLEAR_TOP
+                        | Intent.FLAG_ACTIVITY_SINGLE_TOP));
     }
 
     @Override public void onInterrupt() {}
