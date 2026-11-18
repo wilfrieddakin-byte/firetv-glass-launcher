@@ -458,21 +458,27 @@ public class HomeActivity extends Activity {
             highlight.moveTo(l, t, w, h, h / 2f);
             return;
         }
-        float tileW = dp(180), tileH = dp(101);
+        float tileW, tileH, pad = dp(6);
         if (zone == DOCK) {
             if (dockIdx >= dockRow.getChildCount()) return;
             View cell = dockRow.getChildAt(dockIdx);
             View tile = cell.findViewById(R.id.tile);
+            tileW = tile.getWidth();
+            tileH = tile.getHeight();
+            // Compact dock tiles must keep the glass focus rim inside each slot.
+            if (dockApps.size() > 4) pad = dp(2);
             l = dockRow.getLeft() + cell.getLeft() + tile.getLeft();
             t = dockRow.getTop() + cell.getTop() + tile.getTop();
         } else {
+            tileW = dp(180);
+            tileH = dp(101);
             // Computed from the grid geometry and the scroll target, so the highlight
             // heads straight for the final spot while the grid is still scrolling
             int col = gridIdx % COLUMNS, row = gridIdx / COLUMNS;
             l = grid.getLeft() + grid.getPaddingLeft() + col * dp(204) + dp(12);
             t = grid.getTop() + grid.getPaddingTop() + row * rowHeight() - gridScrollTarget + dp(10);
         }
-        float s = Tiles.FOCUS_SCALE, pad = dp(6);
+        float s = Tiles.FOCUS_SCALE;
         w = tileW * s + 2 * pad;
         h = tileH * s + 2 * pad;
         highlight.moveTo(l + tileW / 2f - w / 2f, t + tileH / 2f - h / 2f, w, h, dp(14) * s + pad);
