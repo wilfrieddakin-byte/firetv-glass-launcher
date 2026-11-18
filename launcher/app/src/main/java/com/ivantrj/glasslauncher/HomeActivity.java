@@ -247,17 +247,17 @@ public class HomeActivity extends Activity {
         dockApps.addAll(result.dock);
         dockRow.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(this);
-        int slotWidth = dockApps.size() > 4 ? dp(816) / dockApps.size() : dp(204);
-        int tileWidth = slotWidth - dp(16);
+        int slotWidth = Math.round(dockApps.size() > 4 ? dp(816) / dockApps.size() : dp(204));
+        int tileWidth = slotWidth - Math.round(dp(16));
         for (AppInfo app : dockApps) {
             View cell = inflater.inflate(R.layout.item_tile, dockRow, false);
             if (dockApps.size() > 4) {
-                cell.setLayoutParams(new LinearLayout.LayoutParams(slotWidth, dp(144)));
+                cell.setLayoutParams(new LinearLayout.LayoutParams(slotWidth, Math.round(dp(144))));
                 View tile = cell.findViewById(R.id.tile);
                 FrameLayout.LayoutParams tileParams = new FrameLayout.LayoutParams(
-                        tileWidth, dp(101), Gravity.TOP | Gravity.START);
-                tileParams.topMargin = dp(10);
-                tileParams.setMarginStart(dp(8));
+                        tileWidth, Math.round(dp(101)), Gravity.TOP | Gravity.START);
+                tileParams.topMargin = Math.round(dp(10));
+                tileParams.setMarginStart(Math.round(dp(8)));
                 tile.setLayoutParams(tileParams);
             }
             Tiles.bind(cell, app);
