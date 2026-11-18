@@ -261,6 +261,10 @@ public class HomeActivity extends Activity {
                 tile.setLayoutParams(tileParams);
             }
             Tiles.bind(cell, app);
+            if (dockApps.size() > 4) {
+                ImageView banner = cell.findViewById(R.id.banner);
+                banner.setScaleType(ImageView.ScaleType.FIT_CENTER);
+            }
             dockRow.addView(cell);
         }
         gridApps = result.grid;
