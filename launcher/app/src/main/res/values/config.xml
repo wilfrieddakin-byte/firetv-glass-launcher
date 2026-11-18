@@ -1,6 +1,6 @@
 <resources>
     <!-- Dock apps, left to right. Missing or disabled packages are skipped.
-         Overridable without rebuilding: ./configure.sh dock pkg1 pkg2 pkg3 pkg4 -->
+         Up to six apps. Overridable without rebuilding: ./configure.sh dock pkg1 ... pkg6 -->
     <string-array name="dock_packages">
         <item>com.stremio.one</item>
         <item>org.smarttube.beta</item>

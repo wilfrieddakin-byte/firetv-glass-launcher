@@ -26,9 +26,11 @@ import android.provider.Settings;
 import android.view.KeyEvent;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.Gravity;
 import android.view.ViewTreeObserver;
 import android.view.animation.DecelerateInterpolator;
 import android.widget.ImageView;
+import android.widget.FrameLayout;
 import android.widget.LinearLayout;
 import android.widget.TextClock;
 import android.widget.TextView;
@@ -245,8 +247,19 @@ public class HomeActivity extends Activity {
         dockApps.addAll(result.dock);
         dockRow.removeAllViews();
         LayoutInflater inflater = LayoutInflater.from(this);
+        int slotWidth = dockApps.size() > 4 ? dp(816) / dockApps.size() : dp(204);
+        int tileWidth = slotWidth - dp(16);
         for (AppInfo app : dockApps) {
             View cell = inflater.inflate(R.layout.item_tile, dockRow, false);
+            if (dockApps.size() > 4) {
+                cell.setLayoutParams(new LinearLayout.LayoutParams(slotWidth, dp(144)));
+                View tile = cell.findViewById(R.id.tile);
+                FrameLayout.LayoutParams tileParams = new FrameLayout.LayoutParams(
+                        tileWidth, dp(101), Gravity.TOP | Gravity.START);
+                tileParams.topMargin = dp(10);
+                tileParams.setMarginStart(dp(8));
+                tile.setLayoutParams(tileParams);
+            }
             Tiles.bind(cell, app);
             dockRow.addView(cell);
         }

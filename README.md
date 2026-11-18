@@ -91,7 +91,7 @@ list. Updates can still arrive, and a Fire OS update may switch things back on. 
 [![Glass app grid](docs/grid.png)](docs/grid.png)
 
 - **Top bar:** clock, greeting, Inputs, Wi-Fi and Settings.
-- **Dock:** your four favourite apps. The big title and the background glow follow the focused app.
+- **Dock:** up to six favourite apps. The big title and the background glow follow the focused app.
 - **Grid:** every other app, alphabetical, 4 columns. Press Down from the dock.
 - **D-pad:** Up and Down always move exactly one row, and the ends of a row never jump elsewhere.
 - **Back** returns to the dock. **Home** while already on Glass does the same.
