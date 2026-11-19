@@ -49,6 +49,7 @@ public class HomeButtonService extends AccessibilityService {
         // launcher. Launch on the initial down event instead; consume both halves.
         if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
             redirectingAmazonHome = false;
+            showHomeCover();
             openGlass(false);
         }
         return true; // swallow both down and up so Fire OS never sees Home
@@ -87,40 +88,38 @@ public class HomeButtonService extends AccessibilityService {
     }
 
     private void showHomeCover() {
-        main.post(() -> {
-            if (windowManager == null) windowManager = getSystemService(WindowManager.class);
-            if (homeCover == null) {
-                FrameLayout cover = new FrameLayout(this);
-                cover.setBackgroundColor(Color.BLACK);
-                TextView title = new TextView(this);
-                title.setText(R.string.app_name);
-                title.setTextColor(Color.WHITE);
-                title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 48);
-                title.setGravity(Gravity.CENTER);
-                cover.addView(title, new FrameLayout.LayoutParams(
-                        FrameLayout.LayoutParams.WRAP_CONTENT,
-                        FrameLayout.LayoutParams.WRAP_CONTENT,
-                        Gravity.CENTER));
+        if (windowManager == null) windowManager = getSystemService(WindowManager.class);
+        if (homeCover == null) {
+            FrameLayout cover = new FrameLayout(this);
+            cover.setBackgroundColor(Color.BLACK);
+            TextView title = new TextView(this);
+            title.setText(R.string.app_name);
+            title.setTextColor(Color.WHITE);
+            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 48);
+            title.setGravity(Gravity.CENTER);
+            cover.addView(title, new FrameLayout.LayoutParams(
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    FrameLayout.LayoutParams.WRAP_CONTENT,
+                    Gravity.CENTER));
 
-                WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                        WindowManager.LayoutParams.MATCH_PARENT,
-                        WindowManager.LayoutParams.MATCH_PARENT,
-                        WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                        WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                                | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                                | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                                | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                        PixelFormat.OPAQUE);
-                params.gravity = Gravity.TOP | Gravity.START;
-                try {
-                    windowManager.addView(cover, params);
-                    homeCover = cover;
-                } catch (WindowManager.BadTokenException ignored) {
-                    return;
-                }
+            WindowManager.LayoutParams params = new WindowManager.LayoutParams(
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.MATCH_PARENT,
+                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
+                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
+                            | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
+                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
+                    PixelFormat.OPAQUE);
+            params.gravity = Gravity.TOP | Gravity.START;
+            try {
+                windowManager.addView(cover, params);
+                homeCover = cover;
+            } catch (WindowManager.BadTokenException ignored) {
+                return;
             }
-            main.postDelayed(this::removeHomeCover, 2500);
-        });
+        }
+        main.postDelayed(this::removeHomeCover, 2500);
     }
 
     private void removeHomeCover() {
