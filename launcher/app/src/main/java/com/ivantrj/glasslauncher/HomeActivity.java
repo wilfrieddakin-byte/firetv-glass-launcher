@@ -392,10 +392,10 @@ public class HomeActivity extends Activity {
         }
     }
 
-    /** Fire TV's own Settings entry point lives in the Amazon launcher package. */
+    /** Open Fire OS's Settings screen, separate from the launcher Home activity. */
     private void openFireTvSettings() {
         Intent intent = new Intent().setComponent(new ComponentName(
-                "com.amazon.tv.launcher", "com.amazon.tv.launcher.ui.SettingsActivity"));
+                "com.amazon.tv.launcher", "com.amazon.tv.launcher.ui.MainSettingsActivity"));
         launch(intent);
     }
 
