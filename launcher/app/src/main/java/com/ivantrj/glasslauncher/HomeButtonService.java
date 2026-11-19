@@ -21,14 +21,17 @@ public class HomeButtonService extends AccessibilityService {
     private static final String AMAZON_HOME_ACTIVITY = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
     private static final String GLASS = "com.ivantrj.glasslauncher";
     private long lastLaunch;
-    private String previousWindowPackage;
+    private boolean redirectingAmazonHome;
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
         if (event.getKeyCode() != KeyEvent.KEYCODE_HOME) return false;
         // Fire OS may cancel or omit HOME's ACTION_UP while switching to its own
         // launcher. Launch on the initial down event instead; consume both halves.
-        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) openGlass();
+        if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
+            redirectingAmazonHome = false;
+            openGlass(false);
+        }
         return true; // swallow both down and up so Fire OS never sees Home
     }
 
@@ -37,19 +40,22 @@ public class HomeButtonService extends AccessibilityService {
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         String currentPackage = event.getPackageName() == null
                 ? "" : event.getPackageName().toString();
-        // Fire TV renders Settings inside its launcher Home activity. Redirect only
-        // when Home appears after another app; Glass opening Settings must stay there.
         if (AMAZON_LAUNCHER.equals(currentPackage)
-                && AMAZON_HOME_ACTIVITY.contentEquals(event.getClassName())
-                && !GLASS.equals(previousWindowPackage)) {
-            openGlass();
+                && AMAZON_HOME_ACTIVITY.contentEquals(event.getClassName())) {
+            // Fire OS may launch Home after our key handler already opened Glass.
+            // Always bring Glass forward when that protected Home activity wins the race.
+            if (!redirectingAmazonHome) {
+                redirectingAmazonHome = true;
+                openGlass(true);
+            }
+        } else if (GLASS.equals(currentPackage)) {
+            redirectingAmazonHome = false;
         }
-        previousWindowPackage = currentPackage;
     }
 
-    private void openGlass() {
+    private void openGlass(boolean force) {
         long now = SystemClock.uptimeMillis();
-        if (now - lastLaunch < 600) return; // one launch per Home press / launcher flash
+        if (!force && now - lastLaunch < 600) return; // one launch per Home press
         lastLaunch = now;
         startActivity(new Intent(this, HomeActivity.class)
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK
