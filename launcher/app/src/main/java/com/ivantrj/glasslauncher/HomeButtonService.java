@@ -32,6 +32,7 @@ public class HomeButtonService extends AccessibilityService {
     private static final String GLASS = "com.ivantrj.glasslauncher";
     private long lastLaunch;
     private boolean redirectingAmazonHome;
+    private boolean glassVisible;
     private final Handler main = new Handler(Looper.getMainLooper());
     private WindowManager windowManager;
     private View homeCover;
@@ -49,7 +50,7 @@ public class HomeButtonService extends AccessibilityService {
         // launcher. Launch on the initial down event instead; consume both halves.
         if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
             redirectingAmazonHome = false;
-            showHomeCover();
+            if (!glassVisible) showHomeCover();
             openGlass(false);
         }
         return true; // swallow both down and up so Fire OS never sees Home
@@ -60,6 +61,7 @@ public class HomeButtonService extends AccessibilityService {
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         String currentPackage = event.getPackageName() == null
                 ? "" : event.getPackageName().toString();
+        glassVisible = GLASS.equals(currentPackage);
         if (GLASS.equals(currentPackage)) {
             redirectingAmazonHome = false;
             if (homeCover != null) main.postDelayed(this::removeHomeCover, 120);
