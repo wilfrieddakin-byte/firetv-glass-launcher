@@ -17,8 +17,8 @@ import android.view.accessibility.AccessibilityEvent;
  * Fire OS protects its launcher, so it can't be disabled and stays the system
  * home. This service makes Glass the effective home screen instead:
  *  - the remote's Home button is consumed and opens Glass;
- *  - a plain accessibility overlay hides Amazon Home while Glass is brought forward;
- *  - whenever Amazon Home comes to the front anyway, Glass is brought back on top.
+ *  - whenever the Amazon launcher comes to the front anyway (after boot, or when
+ *    an app exits), Glass is brought straight back on top.
  * Event-driven only: it receives window changes from the Amazon launcher's
  * package and key events, and does nothing in between.
  */
@@ -28,7 +28,7 @@ public class HomeButtonService extends AccessibilityService {
     private static final String AMAZON_HOME_ACTIVITY = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
     private static final String GLASS = "com.ivantrj.glasslauncher";
     private static final long COVER_TIMEOUT_MS = 1500L;
-    private static final long COVER_RELEASE_DELAY_MS = 80L;
+    private static HomeButtonService activeService;
     private long lastLaunch;
     private boolean redirectingAmazonHome;
     private boolean glassVisible;
@@ -39,19 +39,27 @@ public class HomeButtonService extends AccessibilityService {
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
+        activeService = this;
         windowManager = getSystemService(WindowManager.class);
+    }
+
+    /** Called after Glass has drawn a frame underneath the temporary Home mask. */
+    static void onGlassFirstFrameDrawn() {
+        HomeButtonService service = activeService;
+        if (service != null) service.main.post(service::removeHomeCover);
     }
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
         if (event.getKeyCode() != KeyEvent.KEYCODE_HOME) return false;
-        // Keep the existing Home key handling, including Fire OS long-press behavior.
+        // Fire OS may cancel or omit HOME's ACTION_UP while switching to its own
+        // launcher. Launch on the initial down event instead; consume both halves.
         if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
             redirectingAmazonHome = false;
             if (!glassVisible) showHomeCover();
             openGlass(false);
         }
-        return true;
+        return true; // swallow both down and up so Fire OS never sees Home
     }
 
     @Override
@@ -62,13 +70,12 @@ public class HomeButtonService extends AccessibilityService {
         glassVisible = GLASS.equals(currentPackage);
         if (glassVisible) {
             redirectingAmazonHome = false;
-            if (homeCover != null) main.postDelayed(this::removeHomeCover, COVER_RELEASE_DELAY_MS);
             return;
         }
         if (AMAZON_LAUNCHER.equals(currentPackage)
                 && AMAZON_HOME_ACTIVITY.contentEquals(event.getClassName())) {
             // Fire OS may launch Home after our key handler already opened Glass.
-            // Keep Amazon's first frame covered while Glass takes the foreground.
+            // Always bring Glass forward when that protected Home activity wins the race.
             if (!redirectingAmazonHome) {
                 redirectingAmazonHome = true;
                 showHomeCover();
@@ -127,6 +134,7 @@ public class HomeButtonService extends AccessibilityService {
     @Override public void onInterrupt() { main.post(this::removeHomeCover); }
 
     @Override public void onDestroy() {
+        if (activeService == this) activeService = null;
         main.post(this::removeHomeCover);
         super.onDestroy();
     }
