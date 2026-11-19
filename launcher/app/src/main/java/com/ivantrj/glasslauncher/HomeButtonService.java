@@ -18,6 +18,7 @@ import android.view.accessibility.AccessibilityEvent;
 public class HomeButtonService extends AccessibilityService {
 
     private static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
+    private static final String AMAZON_HOME_ACTIVITY = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
     private long lastLaunch;
 
     @Override
@@ -31,8 +32,11 @@ public class HomeButtonService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
+        // Fire TV routes its Settings screen through the launcher package too. Only
+        // redirect the actual Home activity, or Settings and other system screens bounce away.
         if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                && AMAZON_LAUNCHER.contentEquals(event.getPackageName())) {
+                && AMAZON_LAUNCHER.contentEquals(event.getPackageName())
+                && AMAZON_HOME_ACTIVITY.contentEquals(event.getClassName())) {
             openGlass();
         }
     }
