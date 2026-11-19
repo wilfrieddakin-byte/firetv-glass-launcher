@@ -2,19 +2,9 @@ package com.ivantrj.glasslauncher;
 
 import android.accessibilityservice.AccessibilityService;
 import android.content.Intent;
-import android.graphics.Color;
-import android.graphics.PixelFormat;
-import android.os.Handler;
-import android.os.Looper;
 import android.os.SystemClock;
-import android.util.TypedValue;
-import android.view.Gravity;
 import android.view.KeyEvent;
-import android.view.View;
-import android.view.WindowManager;
 import android.view.accessibility.AccessibilityEvent;
-import android.widget.FrameLayout;
-import android.widget.TextView;
 
 /**
  * Fire OS protects its launcher, so it can't be disabled and stays the system
@@ -32,16 +22,6 @@ public class HomeButtonService extends AccessibilityService {
     private static final String GLASS = "com.ivantrj.glasslauncher";
     private long lastLaunch;
     private boolean redirectingAmazonHome;
-    private boolean glassVisible;
-    private final Handler main = new Handler(Looper.getMainLooper());
-    private WindowManager windowManager;
-    private View homeCover;
-
-    @Override
-    protected void onServiceConnected() {
-        super.onServiceConnected();
-        windowManager = getSystemService(WindowManager.class);
-    }
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
@@ -50,7 +30,6 @@ public class HomeButtonService extends AccessibilityService {
         // launcher. Launch on the initial down event instead; consume both halves.
         if (event.getAction() == KeyEvent.ACTION_DOWN && event.getRepeatCount() == 0) {
             redirectingAmazonHome = false;
-            if (!glassVisible) showHomeCover();
             openGlass(false);
         }
         return true; // swallow both down and up so Fire OS never sees Home
@@ -61,21 +40,16 @@ public class HomeButtonService extends AccessibilityService {
         if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
         String currentPackage = event.getPackageName() == null
                 ? "" : event.getPackageName().toString();
-        glassVisible = GLASS.equals(currentPackage);
-        if (GLASS.equals(currentPackage)) {
-            redirectingAmazonHome = false;
-            if (homeCover != null) main.postDelayed(this::removeHomeCover, 120);
-            return;
-        }
         if (AMAZON_LAUNCHER.equals(currentPackage)
                 && AMAZON_HOME_ACTIVITY.contentEquals(event.getClassName())) {
             // Fire OS may launch Home after our key handler already opened Glass.
             // Always bring Glass forward when that protected Home activity wins the race.
             if (!redirectingAmazonHome) {
                 redirectingAmazonHome = true;
-                showHomeCover();
                 openGlass(true);
             }
+        } else if (GLASS.equals(currentPackage)) {
+            redirectingAmazonHome = false;
         }
     }
 
@@ -89,55 +63,5 @@ public class HomeButtonService extends AccessibilityService {
                         | Intent.FLAG_ACTIVITY_SINGLE_TOP));
     }
 
-    private void showHomeCover() {
-        if (windowManager == null) windowManager = getSystemService(WindowManager.class);
-        if (homeCover == null) {
-            FrameLayout cover = new FrameLayout(this);
-            cover.setBackgroundColor(Color.BLACK);
-            TextView title = new TextView(this);
-            title.setText(R.string.app_name);
-            title.setTextColor(Color.WHITE);
-            title.setTextSize(TypedValue.COMPLEX_UNIT_SP, 48);
-            title.setGravity(Gravity.CENTER);
-            cover.addView(title, new FrameLayout.LayoutParams(
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                    FrameLayout.LayoutParams.WRAP_CONTENT,
-                    Gravity.CENTER));
-
-            WindowManager.LayoutParams params = new WindowManager.LayoutParams(
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.MATCH_PARENT,
-                    WindowManager.LayoutParams.TYPE_ACCESSIBILITY_OVERLAY,
-                    WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE
-                            | WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE
-                            | WindowManager.LayoutParams.FLAG_LAYOUT_IN_SCREEN
-                            | WindowManager.LayoutParams.FLAG_LAYOUT_NO_LIMITS,
-                    PixelFormat.OPAQUE);
-            params.gravity = Gravity.TOP | Gravity.START;
-            try {
-                windowManager.addView(cover, params);
-                homeCover = cover;
-            } catch (WindowManager.BadTokenException ignored) {
-                return;
-            }
-        }
-        main.postDelayed(this::removeHomeCover, 2500);
-    }
-
-    private void removeHomeCover() {
-        if (homeCover == null || windowManager == null) return;
-        try {
-            windowManager.removeView(homeCover);
-        } catch (IllegalArgumentException ignored) {
-            // A lifecycle callback may race with Fire OS removing the accessibility window.
-        }
-        homeCover = null;
-    }
-
-    @Override public void onInterrupt() { main.post(this::removeHomeCover); }
-
-    @Override public void onDestroy() {
-        main.post(this::removeHomeCover);
-        super.onDestroy();
-    }
+    @Override public void onInterrupt() {}
 }
