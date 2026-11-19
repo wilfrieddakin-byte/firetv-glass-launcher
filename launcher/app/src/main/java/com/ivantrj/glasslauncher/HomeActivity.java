@@ -87,6 +87,7 @@ public class HomeActivity extends Activity {
     private List<InputsMenu.Entry> menuEntries = new ArrayList<>();
 
     private boolean stopped = true;
+    private boolean homeFrameSignalPosted;
     private ViewTreeObserver homeFrameObserver;
     private ViewTreeObserver.OnDrawListener homeFrameListener;
     private long wallpaperStamp = -1;
@@ -206,9 +207,13 @@ public class HomeActivity extends Activity {
         if (root == null) return;
         homeFrameObserver = root.getViewTreeObserver();
         homeFrameListener = () -> {
-            if (!root.isShown()) return;
-            removeFirstHomeFrameListener();
-            root.post(HomeButtonService::onGlassFirstFrameDrawn);
+            if (!root.isShown() || homeFrameSignalPosted) return;
+            homeFrameSignalPosted = true;
+            root.post(() -> {
+                removeFirstHomeFrameListener();
+                homeFrameSignalPosted = false;
+                HomeButtonService.onGlassFirstFrameDrawn();
+            });
         };
         homeFrameObserver.addOnDrawListener(homeFrameListener);
         root.invalidate();
