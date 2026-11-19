@@ -4,6 +4,7 @@ import android.animation.ValueAnimator;
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
 import android.content.BroadcastReceiver;
+import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -384,11 +385,18 @@ public class HomeActivity extends Activity {
         if (zone == TOP) {
             if (topIdx == PILL_INPUTS) openMenu();
             else if (topIdx == PILL_WIFI) launch(new Intent(Settings.ACTION_WIFI_SETTINGS));
-            else launch(new Intent(Settings.ACTION_SETTINGS));
+            else openFireTvSettings();
         } else {
             AppInfo app = focusedApp();
             if (app != null) launch(app.launchIntent);
         }
+    }
+
+    /** Fire TV's own Settings entry point lives in the Amazon launcher package. */
+    private void openFireTvSettings() {
+        Intent intent = new Intent().setComponent(new ComponentName(
+                "com.amazon.tv.launcher", "com.amazon.tv.launcher.ui.SettingsActivity"));
+        launch(intent);
     }
 
     /** Menu button on a tile opens that app's system info page (force stop, clear cache...). */
