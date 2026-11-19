@@ -87,6 +87,8 @@ public class HomeActivity extends Activity {
     private List<InputsMenu.Entry> menuEntries = new ArrayList<>();
 
     private boolean stopped = true;
+    private ViewTreeObserver homeFrameObserver;
+    private ViewTreeObserver.OnDrawListener homeFrameListener;
     private long wallpaperStamp = -1;
     private long loadedConfigStamp;
     private float density;
@@ -185,11 +187,39 @@ public class HomeActivity extends Activity {
     }
 
     @Override
+    protected void onResume() {
+        super.onResume();
+        awaitFirstHomeFrame();
+    }
+
+    @Override
     protected void onStop() {
         super.onStop();
         stopped = true;
+        removeFirstHomeFrameListener();
         unregisterReceiver(timeReceiver);
         connectivity.unregisterNetworkCallback(networkCallback);
+    }
+
+    private void awaitFirstHomeFrame() {
+        removeFirstHomeFrameListener();
+        if (root == null) return;
+        homeFrameObserver = root.getViewTreeObserver();
+        homeFrameListener = () -> {
+            if (!root.isShown()) return;
+            removeFirstHomeFrameListener();
+            root.post(HomeButtonService::onGlassFirstFrameDrawn);
+        };
+        homeFrameObserver.addOnDrawListener(homeFrameListener);
+        root.invalidate();
+    }
+
+    private void removeFirstHomeFrameListener() {
+        if (homeFrameObserver != null && homeFrameObserver.isAlive() && homeFrameListener != null) {
+            homeFrameObserver.removeOnDrawListener(homeFrameListener);
+        }
+        homeFrameObserver = null;
+        homeFrameListener = null;
     }
 
     @Override
@@ -392,7 +422,7 @@ public class HomeActivity extends Activity {
         }
     }
 
-    /** Open Fire OS's Settings screen, separate from the launcher Home activity. */
+    /** Open Fire OS's Settings screen, which is separate from the launcher Home activity. */
     private void openFireTvSettings() {
         Intent intent = new Intent().setComponent(new ComponentName(
                 "com.amazon.tv.launcher", "com.amazon.tv.launcher.ui.MainSettingsActivity"));
