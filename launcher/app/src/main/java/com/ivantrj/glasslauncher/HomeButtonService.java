@@ -1,7 +1,10 @@
 package com.ivantrj.glasslauncher;
 
 import android.accessibilityservice.AccessibilityService;
+import android.content.BroadcastReceiver;
+import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.graphics.Color;
 import android.graphics.PixelFormat;
 import android.os.Handler;
@@ -27,6 +30,8 @@ public class HomeButtonService extends AccessibilityService {
     private static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
     private static final String AMAZON_HOME_ACTIVITY = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
     private static final String GLASS = "com.ivantrj.glasslauncher";
+    // Fire OS emits this as it processes the remote's short Home press.
+    private static final String FIRE_TV_HOME_PRESSED = "com.amazon.tv.devicecontrol.HOME_PRESSED";
     private static final long COVER_TIMEOUT_MS = 1500L;
     private static HomeButtonService activeService;
     private long lastLaunch;
@@ -35,12 +40,27 @@ public class HomeButtonService extends AccessibilityService {
     private final Handler main = new Handler(Looper.getMainLooper());
     private WindowManager windowManager;
     private View homeCover;
+    private boolean homeReceiverRegistered;
+    private final BroadcastReceiver homePressedReceiver = new BroadcastReceiver() {
+        @Override public void onReceive(Context context, Intent intent) {
+            if (!FIRE_TV_HOME_PRESSED.equals(intent.getAction())) return;
+            redirectingAmazonHome = false;
+            if (!glassVisible) showHomeCover();
+            openGlass(false);
+        }
+    };
 
     @Override
     protected void onServiceConnected() {
         super.onServiceConnected();
         activeService = this;
         windowManager = getSystemService(WindowManager.class);
+        try {
+            registerReceiver(homePressedReceiver, new IntentFilter(FIRE_TV_HOME_PRESSED));
+            homeReceiverRegistered = true;
+        } catch (RuntimeException ignored) {
+            // Continue using key and window events if Fire OS blocks this action.
+        }
     }
 
     /** Called after Glass has drawn a frame underneath the temporary Home mask. */
@@ -135,6 +155,10 @@ public class HomeButtonService extends AccessibilityService {
 
     @Override public void onDestroy() {
         if (activeService == this) activeService = null;
+        if (homeReceiverRegistered) {
+            try { unregisterReceiver(homePressedReceiver); } catch (IllegalArgumentException ignored) { }
+            homeReceiverRegistered = false;
+        }
         main.post(this::removeHomeCover);
         super.onDestroy();
     }
