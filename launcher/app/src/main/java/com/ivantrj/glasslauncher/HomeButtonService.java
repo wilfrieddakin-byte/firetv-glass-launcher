@@ -19,7 +19,9 @@ public class HomeButtonService extends AccessibilityService {
 
     private static final String AMAZON_LAUNCHER = "com.amazon.tv.launcher";
     private static final String AMAZON_HOME_ACTIVITY = "com.amazon.tv.launcher.ui.HomeActivity_vNext";
+    private static final String GLASS = "com.ivantrj.glasslauncher";
     private long lastLaunch;
+    private String previousWindowPackage;
 
     @Override
     protected boolean onKeyEvent(KeyEvent event) {
@@ -32,13 +34,17 @@ public class HomeButtonService extends AccessibilityService {
 
     @Override
     public void onAccessibilityEvent(AccessibilityEvent event) {
-        // Fire TV routes its Settings screen through the launcher package too. Only
-        // redirect the actual Home activity, or Settings and other system screens bounce away.
-        if (event.getEventType() == AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED
-                && AMAZON_LAUNCHER.contentEquals(event.getPackageName())
-                && AMAZON_HOME_ACTIVITY.contentEquals(event.getClassName())) {
+        if (event.getEventType() != AccessibilityEvent.TYPE_WINDOW_STATE_CHANGED) return;
+        String currentPackage = event.getPackageName() == null
+                ? "" : event.getPackageName().toString();
+        // Fire TV renders Settings inside its launcher Home activity. Redirect only
+        // when Home appears after another app; Glass opening Settings must stay there.
+        if (AMAZON_LAUNCHER.equals(currentPackage)
+                && AMAZON_HOME_ACTIVITY.contentEquals(event.getClassName())
+                && !GLASS.equals(previousWindowPackage)) {
             openGlass();
         }
+        previousWindowPackage = currentPackage;
     }
 
     private void openGlass() {
